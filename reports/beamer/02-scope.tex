@@ -1,0 +1,77 @@
+% Reproduction scope
+% \input{02-scope}
+
+\begin{frame}{本地复现：能做什么、不能做什么}
+\small
+\begin{block}{复现基础}
+本仓库 \code{corl-team/counting\_manifolds}（Apache 2.0）将 counting manifold 实验迁移到开放权重模型。
+\end{block}
+
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.48\linewidth}
+\textbf{能复现的：}
+\begin{itemize}
+  \item 完整 hidden state 收集（逐 token、逐层）
+  \item chars\_since\_nl 线性探针（R², RMSE, MAE）
+  \item mean hiddens PCA 降维与流形可视化
+  \item GPT-2 SAE 特征激活分析 + PCA 投影
+  \item 开放模型家族：Pythia、GPT-2、Gemma、Qwen3、Llama
+\end{itemize}
+\end{column}
+\begin{column}{0.48\linewidth}
+\textbf{不能复现的：}
+\begin{itemize}
+  \item Claude 3.5 Haiku 原始分析（无权重）
+  \item Anthropic 内部的 SAE 训练与干预实验
+  \item 原论文的 steering / intervention 验证
+  \item Claude 特有的 feature 级别分析
+\end{itemize}
+\end{column}
+\end{columns}
+
+\vspace{0.4em}
+\begin{block}{本次复现的两条路线}
+\begin{tabularx}{\linewidth}{lllX}
+\toprule
+路线 & 模型 & 层数/维度 & 验证重点 \\
+\midrule
+\textbf{Pythia-70M} & EleutherAI/pythia-70m-deduped & 6 层 / 512-d & hidden state + probe + PCA 全流程 \\
+\textbf{GPT-2} & openai-community/gpt2 & 12 层 / 768-d & 额外 SAE 特征提取 + PCA 投影 \\
+\bottomrule
+\end{tabularx}
+\end{block}
+\end{frame}
+
+\begin{frame}{数据来源与处理}
+\small
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.52\linewidth}
+\textbf{数据集：HuggingFaceFW/fineweb}
+\begin{itemize}
+  \item train split，streaming 模式（不落地）
+  \item 过滤：文本 $>$ 1500 chars（= 10 行 × 150），不含 \code{\\n}
+  \item 取 1000 条，按 150 char 宽度自动换行
+  \item Tokenizer：fast tokenizer + offset\_mapping 追踪字符位置
+\end{itemize}
+
+\vspace{0.4em}
+\textbf{关键标注：chars\_since\_nl}
+\begin{itemize}
+  \item 对每个 token 计算：距上一个 \code{\\n} 的字符偏移
+  \item 特殊 token / chat template token → 0
+  \item 理论上限 = 150（line\_length）
+\end{itemize}
+\end{column}
+\begin{column}{0.45\linewidth}
+\textbf{处理管线：}
+\begin{enumerate}
+  \item \code{load\_dataset("fineweb", streaming=True)}
+  \item \code{.filter()}：长度 + 无换行
+  \item \code{islice(stream, 1000)} → materialize
+  \item \code{wrap\_preserve\_newlines(width=150)}
+  \item tokenize + offset\_mapping → chars\_since\_nl
+  \item assert max(chars) $\le$ 150
+\end{enumerate}
+\end{column}
+\end{columns}
+\end{frame}

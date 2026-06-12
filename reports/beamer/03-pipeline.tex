@@ -1,0 +1,60 @@
+% Pipeline overview
+% \input{03-pipeline}
+
+\begin{frame}{实验管线总览}
+\footnotesize
+\begin{tabularx}{\linewidth}{cXl}
+\toprule
+步骤 & 流程 & 产物 \\
+\midrule
+\textbf{1. 数据准备} & FineWeb → 过滤 → 换行包装 → tokenize + chars\_since\_nl 标注 & 1000 条 tokenized 样本 \\
+\textbf{2. LM 评估} & 前向传播 → next-token NLL loss / accuracy / newline prob & \code{lm\_metrics.csv}, \code{newline\_probs.npy} \\
+\textbf{3. 逐层分析} & 每层：collect hiddens → mean by char count → linear probe → PCA & \code{metrics.csv}, \code{mean\_hiddens.npy} \\
+\textbf{4. SAE 分析} & (GPT-2 only) SAE encode → per-count activation → top features → PCA 投影 & \code{sae\_mean\_acts.npy}, \code{top\_sae\_features\_projected.npy} \\
+\bottomrule
+\end{tabularx}
+
+\vspace{0.6em}
+\begin{center}
+\begin{tikzpicture}[
+  node distance=2.8cm,
+  box/.style={draw, rounded corners=3pt, align=center, minimum width=3.2cm, minimum height=1.0cm, font=\footnotesize},
+  arr/.style={->, thick, color=cmblue}
+]
+\node[box, fill=cmblue!10] (data) {FineWeb\\原始文本};
+\node[box, fill=cmblue!10, right=of data] (tok) {Tokenization\\+ chars\_since\_nl};
+\node[box, fill=cmgreen!10, right=of tok] (lm) {LM 评估\\loss/acc/newline};
+\node[box, fill=cmorange!10, below=of tok] (layer) {逐层分析\\probe + PCA};
+\node[box, fill=cmred!10, below=of lm] (sae) {SAE 分析\\(仅 GPT-2)};
+\draw[arr] (data) -- (tok);
+\draw[arr] (tok) -- (lm);
+\draw[arr] (tok) -- (layer);
+\draw[arr] (layer) -- (sae);
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+\begin{frame}{步骤 1：LM 评估——模型基础能力基线}
+\small
+\begin{block}{评估内容}
+在 1000 条 FineWeb 样本上做一次完整前向传播，计算 next-token 预测指标。
+\end{block}
+
+\begin{tabularx}{\linewidth}{l>{\raggedright\arraybackslash}p{5cm}l}
+\toprule
+指标 & 含义 & 方向 \\
+\midrule
+\metric{lm\_loss} & next-token NLL loss（仅 valid tokens） & $\downarrow$ \\
+\metric{lm\_acc} & next-token argmax 准确率 & $\uparrow$ \\
+\metric{lm\_acc\_if\_newline} & 当 gold token 含 \code{\\n} 时，精确命中准确率 & $\uparrow$ \\
+\metric{lm\_acc\_if\_newline\_any} & 当 gold token 含 \code{\\n} 时，预测任一含 \code{\\n} token 的准确率 & $\uparrow$ \\
+\metric{mean\_prob\_if\_newline} & gold token 含 \code{\\n} 时，所有含 \code{\\n} token 的概率质量均值 & $\uparrow$ \\
+\bottomrule
+\end{tabularx}
+
+\vspace{0.4em}
+\begin{itemize}
+  \item 如果 LM 指标极差（如 loss 异常高），说明模型加载或数据 pipeline 有问题
+  \item newline 相关指标反映模型对换行位置的敏感度，为后续 counting manifold 提供行为基线
+\end{itemize}
+\end{frame}

@@ -1,0 +1,69 @@
+% Experiment design matrix
+% \input{05-design}
+
+\begin{frame}{实验矩阵：两条路线}
+\small
+\begin{tabularx}{\linewidth}{l>{\raggedright\arraybackslash}p{4.5cm}>{\raggedright\arraybackslash}p{4.5cm}}
+\toprule
+ & \textbf{Pythia-70M} & \textbf{GPT-2} \\
+\midrule
+模型 & EleutherAI/pythia-70m-deduped & openai-community/gpt2 \\
+层数 & 6 & 12 \\
+Hidden dim & 512 & 768 \\
+精度 & float32 & float32 \\
+SAE & 无 & gpt2-small-resid-post-v5-128k \\
+\midrule
+数据集 & FineWeb & FineWeb \\
+样本量 & 1000 & 1000 \\
+行宽 & 150 chars & 150 chars \\
+最少行数 & 10 & 10 \\
+\midrule
+验证重点 & probe + PCA 全流程 & 额外 SAE 路径 \\
+预计 GPU 时间 & 数分钟 & 数十分钟 \\
+\bottomrule
+\end{tabularx}
+
+\vspace{0.4em}
+\begin{block}{共性参数}
+seed=1, batch\_size=4, num\_workers=14, max\_seq\_len=1024, pca\_n\_omit=20, pca\_n\_components=6,
+sae\_top\_k\_for\_save=100, log\_first\_n=25
+\end{block}
+\end{frame}
+
+\begin{frame}{预期产物清单}
+\small
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.48\linewidth}
+\textbf{两个模型共有：}
+\begin{itemize}
+  \item \code{lm\_metrics.csv} — LM 评估指标
+  \item \code{metrics.csv} — 逐层 R², RMSE, MAE, PCA var
+  \item \code{mean\_hiddens.npy} — [L, 151, H]
+  \item \code{explained\_variance\_ratio.npy} — [L, K]
+  \item \code{mean\_hiddens\_pca\_slice\_20\_to\_150\_d6.npy} — [L, 131, 6]
+  \item \code{newline\_probs.npy}
+  \item \code{counts/} 目录 — 前 25 条样本的 token 级 chars\_since\_nl
+  \item \code{newline\_probs/} 目录 — 前 25 条样本的 token 级 newline prob
+\end{itemize}
+\end{column}
+\begin{column}{0.48\linewidth}
+\textbf{GPT-2 额外：}
+\begin{itemize}
+  \item \code{sae\_mean\_acts.npy} — [L, 150, 128k]
+  \item \code{sae\_frac\_acts.npy}
+  \item \code{sae\_mean\_top\_acts.npy} — [L, 150, 100]
+  \item \code{sae\_mean\_indices.npy}
+  \item \code{sae\_frac\_top\_acts.npy}
+  \item \code{sae\_frac\_indices.npy}
+  \item \code{top\_sae\_features\_projected.npy} — [L, 100, 6]
+  \item \code{top\_sae\_features\_projected\_scaled.npy}
+  \item \code{mean\_hiddens\_pca\_sae\_spanned\_*.npy}
+\end{itemize}
+\end{column}
+\end{columns}
+
+\vspace{0.4em}
+\begin{center}
+输出路径：\code{/NAS/chennc/NashChennc/results/counting-manifolds/<model>/HuggingFaceFW\_\_\_fineweb/}
+\end{center}
+\end{frame}

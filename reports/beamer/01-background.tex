@@ -1,0 +1,80 @@
+% Original paper claims — Counting Manifold
+% \input{01-background}
+
+\begin{frame}{原论文：When Models Manipulate Manifolds}
+\small
+\begin{block}{Anthropic 的核心发现（2025）}
+Anthropic 在 Claude 3.5 Haiku 中发现：语言模型的残差流中存在一个低维几何结构
+——\textbf{计数流形（Counting Manifold）}——编码了 ``当前 token 距离上一个换行符的字符数'' 这一简单特征。
+\end{block}
+
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.48\linewidth}
+\textbf{三个核心主张：}
+\begin{enumerate}
+  \item \textbf{流形存在}：hidden state 中有一个低维（$\sim$6 维）子空间，其坐标与 chars-since-newline 高度对应
+  \item \textbf{模型利用}：模型在预测换行符时会 ``读取'' 这个流形上的位置信息
+  \item \textbf{SAE 可解释}：稀疏自编码器（SAE）的部分特征方向与该流形对齐，可定位 ``计数神经元''
+\end{enumerate}
+\end{column}
+\begin{column}{0.48\linewidth}
+\textbf{关键实验手段：}
+\begin{itemize}
+  \item 线性探针（Linear Probe）：hidden $\rightarrow$ char\_pos，测 R²
+  \item PCA：对 mean hiddens 降维，可视化流形几何
+  \item SAE：找到对 char\_pos 敏感的稀疏特征
+  \item 干预实验：沿流形方向扰动 hidden state，观察换行预测变化
+\end{itemize}
+\end{column}
+\end{columns}
+
+\vspace{0.4em}
+\begin{alertblock}{注意}
+原论文使用 Claude 3.5 Haiku（闭源权重），其 SAE 和干预实验不可精确复现。
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Counting Manifold 几何直觉}
+\small
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.45\linewidth}
+\textbf{chars\_since\_nl 的含义：}
+\begin{itemize}
+  \item 对每行文本按固定宽度（150 chars）自动换行
+  \item 每个 token 标注：距离上一个 \code{\\n} 的字符偏移量
+  \item 范围：$0 \sim 150$（0 = 行首，150 = 行尾）
+\end{itemize}
+
+\vspace{0.5em}
+\textbf{流形的几何预期：}
+\begin{itemize}
+  \item PCA 前 2 个主成分应形成 \textbf{螺旋/环形} 结构
+  \item 原因：char position 是循环变量（行首 $\approx$ 行尾，但偏移 1 不同）
+  \item 更高维 PC 可能编码行内位置的非线性变化
+\end{itemize}
+\end{column}
+\begin{column}{0.52\linewidth}
+\begin{center}
+\begin{tikzpicture}[scale=1.8]
+  % Spiral representing the counting manifold
+  \draw[->, thick, cmblue] (-2.2, 0) -- (2.2, 0) node[right] {PC1};
+  \draw[->, thick, cmblue] (0, -1.5) -- (0, 1.5) node[above] {PC2};
+  % Draw spiral
+  \foreach \t in {0, 0.2, 0.4, ..., 12.56} {
+    \pgfmathsetmacro\r{\t * 0.12}
+    \pgfmathsetmacro\x{\r * cos(\t r)}
+    \pgfmathsetmacro\y{\r * sin(\t r)}
+    \pgfmathsetmacro\c{int(100 * \t / 12.56)}
+    \fill[cmblue!\c!cmorange] (\x, \y) circle (0.03);
+  }
+  \node[font=\footnotesize] at (0.6, 0.9) {char=0};
+  \node[font=\footnotesize] at (-0.2, 1.4) {char=40};
+  \node[font=\footnotesize] at (-0.9, 0.8) {char=80};
+  \node[font=\footnotesize] at (-0.4, -1.2) {char=120};
+\end{tikzpicture}
+\end{center}
+\vspace{-0.3em}
+{\footnotesize 示意：PCA 投影后的螺旋结构\\每个点 = 某个 char position 的 mean hidden}
+\end{column}
+\end{columns}
+\end{frame}

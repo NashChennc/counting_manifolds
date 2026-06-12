@@ -1,0 +1,73 @@
+# 实验条件覆盖管理 — Counting Manifolds 复现
+
+exp_id: "cm_repro_001"
+description: "复现 counting manifold 在 open LLMs 中的存在性"
+
+conditions:
+  - id: "pythia-70m"
+    name: "Pythia-70M baseline"
+    model: "EleutherAI/pythia-70m-deduped"
+    config: "configs/repro-pythia-70m-gpu.yml"
+    variables:
+      num_layers: 6
+      hidden_dim: 512
+      sae_available: false
+      dtype: "float32"
+      max_seq_len: 1024
+    dataset: "HuggingFaceFW/fineweb"
+    num_samples: 1000
+    line_length: 150
+    min_lines: 10
+    target_samples: 1
+    completed_samples: 0
+    status: "pending"
+    expected_artifacts:
+      - lm_metrics.csv
+      - metrics.csv
+      - mean_hiddens.npy
+      - explained_variance_ratio.npy
+      - mean_hiddens_pca_slice_20_to_150_d6.npy
+      - newline_probs.npy
+    notes: "验证 hidden-state 收集、线性 probe、PCA 全流程"
+
+  - id: "gpt2"
+    name: "GPT-2 with SAE"
+    model: "openai-community/gpt2"
+    config: "configs/repro-gpt2-gpu.yml"
+    variables:
+      num_layers: 12
+      hidden_dim: 768
+      sae_available: true
+      sae_release: "gpt2-small-resid-post-v5-128k"
+      dtype: "float32"
+      max_seq_len: 1024
+    dataset: "HuggingFaceFW/fineweb"
+    num_samples: 1000
+    line_length: 150
+    min_lines: 10
+    target_samples: 1
+    completed_samples: 0
+    status: "pending"
+    expected_artifacts:
+      - lm_metrics.csv
+      - metrics.csv
+      - mean_hiddens.npy
+      - explained_variance_ratio.npy
+      - mean_hiddens_pca_slice_20_to_150_d6.npy
+      - newline_probs.npy
+      - sae_mean_acts.npy
+      - sae_frac_acts.npy
+      - sae_mean_top_acts.npy
+      - sae_mean_indices.npy
+      - sae_frac_top_acts.npy
+      - sae_frac_indices.npy
+      - top_sae_features_projected.npy
+      - top_sae_features_projected_scaled.npy
+      - mean_hiddens_pca_sae_spanned_slice_20_to_150_d6.npy
+    notes: "额外验证 SAE 特征提取与 PCA 投影路径"
+
+# 扩展条件（后续可追加）
+# - id: "pythia-160m" / "pythia-410m" / ... — 验证跨规模一致性
+# - id: "gpt2-medium" / "gpt2-large" / "gpt2-xl" — 验证 GPT-2 家族 SAE 覆盖
+# - id: "gemma-2-2b" / "gemma-2-9b" — 验证不同架构
+# - id: "qwen3-*" / "llama3.1-8b" — 验证最新模型

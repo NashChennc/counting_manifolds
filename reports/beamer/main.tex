@@ -1,0 +1,97 @@
+\documentclass[fontset=fandol,aspectratio=169,11pt]{ctexbeamer}
+
+\usetheme{Boadilla}
+\usecolortheme{seahorse}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{pgfplots}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,shapes.geometric}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\pgfplotsset{compat=1.18}
+
+\AtBeginSubsection[]{
+  \begin{frame}{\insertsection}
+    \tableofcontents[currentsubsection, subsectionstyle=show/shaded/hide]
+  \end{frame}
+}
+
+\definecolor{cmblue}{HTML}{1A5276}
+\definecolor{cmgreen}{HTML}{1E8449}
+\definecolor{cmorange}{HTML}{B9770E}
+\definecolor{cmred}{HTML}{922B21}
+\definecolor{cmgray}{HTML}{5C6773}
+
+\setbeamercolor{title}{fg=cmblue}
+\setbeamercolor{frametitle}{fg=cmblue}
+\setbeamercolor{structure}{fg=cmblue}
+\setbeamercolor{block title}{fg=white,bg=cmblue}
+\setbeamercolor{block body}{fg=black,bg=blue!3}
+\setbeamercolor{alerted text}{fg=cmred}
+
+\newcommand{\code}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\metric}[1]{\texttt{#1}}
+\newcommand{\tight}{\vspace{-0.35em}}
+
+\title[Counting Manifolds 复现]{Chasing the Counting Manifold in Open LLMs\\—— 实验设计方案}
+\subtitle{基于 Anthropic ``When Models Manipulate Manifolds'' 的开放模型复现}
+\author{陈纳川}
+\date{2026-06-11}
+
+\begin{document}
+
+% ============================================================
+% 开场
+% ============================================================
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{目录}
+  \tableofcontents[hideallsubsections]
+\end{frame}
+
+% ============================================================
+% Section 1: 背景与原文
+% ============================================================
+\section{背景与原论文}
+\subsection{原论文核心主张}
+\input{01-background}
+\subsection{本地复现范围}
+\input{02-scope}
+
+% ============================================================
+% Section 2: 实验管线
+% ============================================================
+\section{实验管线}
+\subsection{数据流总览}
+\input{03-pipeline}
+\subsection{分析方法详解}
+\input{04-methods}
+
+% ============================================================
+% Section 3: 实验设计
+% ============================================================
+\section{实验设计}
+\subsection{实验矩阵}
+\input{05-design}
+\subsection{判定标准}
+\input{06-criteria}
+
+% ============================================================
+% Section 4: 预期与下一步
+% ============================================================
+\section{预期结果与下一步}
+\input{07-next}
+
+\appendix
+\section{附录：配置详情}
+\input{90-appendix}
+
+\end{document}

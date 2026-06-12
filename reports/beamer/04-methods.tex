@@ -1,0 +1,128 @@
+% Analysis methods
+% \input{04-methods}
+
+\begin{frame}{步骤 2：逐层 Hidden State 收集}
+\small
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.55\linewidth}
+\textbf{collect\_layer\_hiddens()：}
+\begin{enumerate}
+  \item 逐 batch 前向传播，\code{output\_hidden\_states=True}
+  \item 取出目标层的 hidden state：\code{hs[layer\_idx+1]}
+  \item 按 unpadded length 截取，返回 \code{List[[T, H]]}
+  \item 全部存在 CPU 内存（detach + cpu）
+\end{enumerate}
+\end{column}
+\begin{column}{0.42\linewidth}
+\textbf{mean\_hidden\_by\_chars\_since\_nl()：}
+\begin{enumerate}
+  \item 对每个 char count $c \in [0, 150]$
+  \item 收集所有 chars\_since\_nl $= c$ 的 hidden state
+  \item 取均值 → \code{[151, H]} 矩阵
+  \item 每行 = 该 char position 的 ``原型向量''
+\end{enumerate}
+\end{column}
+\end{columns}
+
+\vspace{0.4em}
+\begin{block}{为什么用 mean hidden？}
+单个 token 的 hidden state 噪声很大（受上下文、语义等影响）。按 char count 分组求均值后，
+消去了语义噪声，保留纯粹的 position 信号。这个 \textbf{151 × H 的均值矩阵}就是 counting manifold 的载体。
+\end{block}
+\end{frame}
+
+\begin{frame}{步骤 2：线性探针（Linear Probe）}
+\small
+\begin{block}{方法}
+对所有 token 的 hidden state $X \in \mathbb{R}^{N \times H}$ 和对应的 chars\_since\_nl $y \in \mathbb{R}^N$，
+拟合最小二乘回归：$\hat{y} = Xw + b$。
+\end{block}
+
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.48\linewidth}
+\textbf{指标：}
+\begin{itemize}
+  \item \textbf{R²}：hidden state 线性可解释的 char position 方差比例（主指标）
+  \item \textbf{RMSE}：预测的均方根误差（chars），随机基线 $\approx 43$
+  \item \textbf{MAE}：平均绝对误差
+\end{itemize}
+\end{column}
+\begin{column}{0.48\linewidth}
+\textbf{解读：}
+\begin{itemize}
+  \item R² $>$ 0.5 → counting 信息以线性可读方式存在
+  \item R² $\approx$ 0 → 该层不编码 position
+  \item R² 的最高层通常出现在中间层（非最后层）
+\end{itemize}
+\end{column}
+\end{columns}
+
+\vspace{0.4em}
+\begin{block}{局限性}
+线性探针只能检测\textbf{线性可分离}的信息。如果 char position 以非线性方式编码，R² 会低估信息量。
+PCA 部分互补了这一局限。
+\end{block}
+\end{frame}
+
+\begin{frame}{步骤 3：PCA 流形可视化}
+\small
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.52\linewidth}
+\textbf{pca\_per\_layer()：}
+\begin{enumerate}
+  \item 输入：mean hiddens \code{[151, H]}
+  \item 省略前 \code{n\_omit=20} 个 char counts（行首噪声大）
+  \item 对剩余 \code{[131, H]} 做 PCA（full SVD）
+  \item 取前 \code{n\_components=6} 个主成分
+  \item 返回：投影坐标 \code{[151, 6]} + explained variance ratio
+\end{enumerate}
+\end{column}
+\begin{column}{0.45\linewidth}
+\textbf{关键观察：}
+\begin{itemize}
+  \item PC1-PC2 是否呈螺旋/环形？
+  \item 前 6 PC 解释了多少方差？（$>$50\% = 强低维结构）
+  \item 各层的流形形状如何变化？
+  \item SAE features 投影到 PCA 空间后的方向？
+\end{itemize}
+\end{column}
+\end{columns}
+
+\vspace{0.4em}
+\begin{block}{为什么省略前 20 个 counts？}
+行首位置（char 0--19）的 hidden state 可能受 BOS token、首词效应等混杂，去掉后 PCA 更干净地捕获纯 position 信号。
+\end{block}
+\end{frame}
+
+\begin{frame}{步骤 4：SAE 特征分析（仅 GPT-2）}
+\small
+\begin{block}{SAE 接入}
+GPT-2 使用 Joseph Bloom 的 \code{gpt2-small-resid-post-v5-128k} SAE（128k features/layer）。
+通过 \code{sae\_lens} 库加载，逐 char count 计算 feature activations。
+\end{block}
+
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.50\linewidth}
+\textbf{分析流程：}
+\begin{enumerate}
+  \item \code{sae.encode(hidden)} → sparse activations
+  \item 乘以 \code{W\_dec} norm（还原真实激活幅度）
+  \item 逐 char count 取均值 → \code{[150, 128k]}
+  \item 按 std 排序，取 top 100 features
+  \item 将 top feature 的 W\_dec 方向投影到 PCA 空间
+\end{enumerate}
+\end{column}
+\begin{column}{0.47\linewidth}
+\textbf{核心问题：}
+\begin{itemize}
+  \item SAE top features 是否沿 counting manifold 方向排列？
+  \item 是否存在 ``计数神经元''（激活随 position 单调/周期变化）？
+  \item SAE 特征方向的 PCA 投影是否形成有意义的几何结构？
+\end{itemize}
+\end{column}
+\end{columns}
+
+\vspace{0.4em}
+\textbf{产物：}
+\code{sae\_mean\_acts.npy}（[L, 150, 128k]）、\code{top\_sae\_features\_projected.npy}（[L, 100, 6]）、\code{mean\_hiddens\_pca\_sae\_spanned\_*.npy}
+\end{frame}

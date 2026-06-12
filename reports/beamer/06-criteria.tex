@@ -1,0 +1,85 @@
+% Success criteria
+% \input{06-criteria}
+
+\begin{frame}{判定标准：成功 / 存疑 / 失败}
+\small
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.32\linewidth}
+\begin{block}{成功（复现 counting manifold）}
+\begin{itemize}
+  \item 两个模型均正常完成全流程
+  \item 至少一层 R² $>$ 0.5
+  \item 至少一层 PCA 前 6 PC 解释方差 $>$ 50\%
+  \item GPT-2 SAE 产物完整
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}{0.32\linewidth}
+\begin{block}{存疑（需进一步检查）}
+\begin{itemize}
+  \item 所有层 R² $<$ 0.3
+  \item PCA explained var $<$ 30\%
+  \item SAE 投影与 PCA 无对齐
+  \item 仅一个模型成功
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}{0.32\linewidth}
+\begin{block}{失败}
+\begin{itemize}
+  \item 实验崩溃（OOM / CUDA error）
+  \item 产物缺失或大小为 0
+  \item R² $\approx$ 0（与随机无异）
+\end{itemize}
+\end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{核心问题（$\le$3 个）与止损线}
+\small
+\begin{block}{三个核心验证问题}
+\begin{enumerate}
+  \item \textbf{Counting manifold 是否存在？} → 至少一层 R² $>$ 0.5 + PCA 呈螺旋结构
+  \item \textbf{Counting 信息集中在哪一层？} → 观察 R² 和 PCA var 的逐层曲线，预期在中间层最强
+  \item \textbf{SAE 特征是否与 manifold 对齐？}（GPT-2）→ top features 投影是否沿 PCA 主方向排列
+\end{enumerate}
+\end{block}
+
+\begin{alertblock}{止损线}
+\begin{itemize}
+  \item 任一模型所有层 R² $<$ 0.1 → 检查 chars\_since\_nl 标注和 data pipeline
+  \item OOM → 降 batch\_size 或 num\_workers 重试
+  \item 产物缺失 → 检查磁盘空间和 output\_path 权限
+\end{itemize}
+\end{alertblock}
+
+\begin{block}{惊喜需要额外验证（不直接采信）}
+\begin{itemize}
+  \item 某一层 R² 异常高（$>$0.9）但相邻层骤降 → 检查该层 PCA 是否平滑
+  \item SAE feature 恰好过原点 → 可能是 SAE bias artifact
+  \item 两个模型的流形几何显著不同 → 可能是架构/规模差异，不推广到 ``所有 LLMs''
+\end{itemize}
+\end{block}
+\end{frame}
+
+\begin{frame}{指标优先级与基线}
+\small
+\begin{tabularx}{\linewidth}{cl>{\raggedright\arraybackslash}p{5cm}l}
+\toprule
+优先级 & 指标 & 含义 & 基线/上限 \\
+\midrule
+\textbf{1} & 逐层 R² & hidden state 对 char position 的线性可分性 & 随机=0, 上限=1 \\
+\textbf{2} & PCA explained var (前 6 PC) & 低维流形结构的集中度 & 随机 $\approx$ 6/H $\approx$ 1\% \\
+3 & RMSE / MAE & 线性探针绝对误差 & 随机 $\approx$ 43 chars \\
+4 & LM loss / acc & 模型基础语言能力 & 参考公开 benchmark \\
+5 & SAE top feat PCA 对齐 & SAE 特征是否沿 manifold 排列 & 定性分析 \\
+\bottomrule
+\end{tabularx}
+
+\vspace{0.4em}
+\begin{itemize}
+  \item \textbf{文献参考}：Anthropic 原文报告 Claude 3.5 Haiku 中存在清晰的低维流形
+  \item 如果 Pythia-70M 和 GPT-2 均成功 → 暗示 counting manifold 是 transformer 的普遍性质（而非某个模型特异的 artifact）
+\end{itemize}
+\end{frame}

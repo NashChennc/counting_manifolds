@@ -1,0 +1,103 @@
+% Next steps and limitations
+% \input{07-next}
+
+\begin{frame}{实验执行计划}
+\small
+\begin{block}{运行命令}
+\footnotesize
+\begin{enumerate}
+  \item \code{conda activate /NAS/chennc/NashChennc/.tmp/conda-envs/counting-manifolds}
+  \item \code{HF\_HOME=/NAS/chennc/NashChennc/.tmp/hf-cache CUDA\_VISIBLE\_DEVICES=0 \textbackslash}
+        \hspace{1em}\code{python -m counting\_manifolds.main --config\_path configs/repro-pythia-70m-gpu.yml}
+  \item \code{HF\_HOME=/NAS/chennc/NashChennc/.tmp/hf-cache CUDA\_VISIBLE\_DEVICES=0 \textbackslash}
+        \hspace{1em}\code{python -m counting\_manifolds.main --config\_path configs/repro-gpt2-gpu.yml}
+\end{enumerate}
+\end{block}
+
+\begin{block}{执行后动作}
+\begin{itemize}
+  \item 验证所有预期产物存在、大小合理
+  \item 读取 \code{metrics.csv}，确认 R² 和 PCA var 的逐层趋势
+  \item 读取 \code{lm\_metrics.csv}，确认模型 LM 能力正常
+  \item 用 Python 快速绘制 PCA PC1-PC2 散点图，检查螺旋结构
+  \item 将实际数据填入本报告的结果部分
+\end{itemize}
+\end{block}
+\end{frame}
+
+\begin{frame}{局限性与声称边界}
+\small
+\begin{block}{当前设计的局限}
+\begin{itemize}
+  \item \textbf{单数据集}：仅 FineWeb，未测试代码、多语言、结构化文本
+  \item \textbf{小模型}：Pythia-70M（6 层）和 GPT-2（12 层）规模有限，大模型的流形可能更复杂
+  \item \textbf{SAE 覆盖不全}：Pythia 无 SAE，GPT-2 SAE 仅 resid-post 位置
+  \item \textbf{无干预验证}：本仓库不支持 steering/intervention，无法验证因果性
+  \item \textbf{单次运行}：seed=1 固定，未测随机种子敏感性
+  \item \textbf{Claude 不可复现}：原文最精细的分析仍在闭源模型上
+\end{itemize}
+\end{block}
+
+\begin{alertblock}{声称边界}
+\begin{itemize}
+  \item 即使两个模型都成功，结论限于 ``open LLMs 中存在 counting manifold''，\textbf{不能}声称等同于 Anthropic 论文的全部发现
+  \item \textbf{不能}从 SAE top features 推断因果机制（仅相关性）
+  \item \textbf{不能}推广到所有 transformer 模型或所有语言
+\end{itemize}
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{扩展路线图}
+\small
+\begin{tabularx}{\linewidth}{cl>{\raggedright\arraybackslash}p{6cm}X}
+\toprule
+优先级 & 扩展 & 内容 & 预期收获 \\
+\midrule
+1 & 跨规模比较 & 跑 Pythia 14M→2.8B / GPT-2 Medium→XL & 流形质量是否随规模单调提升？ \\
+2 & 跨架构比较 & 跑 Gemma-2/3、Qwen3、Llama3.1 & 流形是否与架构无关？ \\
+3 & SAE 多层分析 & GPT-2 所有 12 层的 SAE & SAE 特征与流形的对齐如何随层演化？ \\
+4 & 多数据集 & 代码、数学、多语言文本 & 流形是否依赖数据分布？ \\
+5 & family\_metrics & 汇总同家族多模型的 lm\_metrics & 跨模型的语言能力基线对比 \\
+\bottomrule
+\end{tabularx}
+
+\vspace{0.4em}
+\begin{itemize}
+  \item 全部 29 个 config 文件已就绪，扩展只需换 \code{--config\_path}
+  \item 跨模型比较可借助 \code{family\_metrics.py} 自动汇总
+\end{itemize}
+\end{frame}
+
+\begin{frame}{总结}
+\small
+\begin{block}{本次实验试图回答的问题}
+\begin{center}
+\textbf{Anthropic 在 Claude 中发现的 counting manifold，在开放权重的小模型中是否同样存在？}
+\end{center}
+\end{block}
+
+\vspace{0.3em}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.48\linewidth}
+\textbf{如果成功：}
+\begin{itemize}
+  \item 证明 counting manifold 是 transformer 的普遍性质
+  \item 为后续更大规模、更多模型的系统研究提供基线
+  \item GPT-2 SAE 分析提供可解释性入口
+\end{itemize}
+\end{column}
+\begin{column}{0.48\linewidth}
+\textbf{如果失败/存疑：}
+\begin{itemize}
+  \item 检查数据 pipeline 和 chars\_since\_nl 标注
+  \item 可能需要更大的模型或更多样本
+  \item 小模型的 position 编码方式可能不同（如绝对位置 vs 相对位置）
+\end{itemize}
+\end{column}
+\end{columns}
+
+\vspace{0.5em}
+\begin{center}
+\large\textcolor{cmblue}{\textbf{设计完成，待确认后启动实验}}
+\end{center}
+\end{frame}

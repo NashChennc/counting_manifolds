@@ -1,4 +1,36 @@
 import os
+
+# Force HF mirror endpoint before any HF library imports
+if not os.environ.get("HF_ENDPOINT"):
+    os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+
+# Monkey-patch: redirect ALL huggingface.co requests to hf-mirror.com
+# Some huggingface_hub internals (e.g. list_repo_tree) don't respect HF_ENDPOINT
+_orig_request = None
+
+
+def _patch_requests():
+    global _orig_request
+    import requests
+    from urllib.parse import urlparse, urlunparse
+
+    _orig_request = requests.Session.request
+
+    def _patched_request(self, method, url, *args, **kwargs):
+        parsed = urlparse(url)
+        if parsed.netloc == "huggingface.co":
+            new_parsed = parsed._replace(netloc="hf-mirror.com")
+            url = urlunparse(new_parsed)
+        elif parsed.netloc == "cdn-lfs.huggingface.co":
+            new_parsed = parsed._replace(netloc="cdn-lfs.hf-mirror.com")
+            url = urlunparse(new_parsed)
+        return _orig_request(self, method, url, *args, **kwargs)
+
+    requests.Session.request = _patched_request
+
+
+_patch_requests()
+
 import textwrap
 from dataclasses import dataclass
 from itertools import islice

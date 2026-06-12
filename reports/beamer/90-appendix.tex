@@ -1,0 +1,94 @@
+% Appendix: config details
+% \input{90-appendix}
+
+\footnotesize
+
+\begin{frame}{附录：Pythia-70M 复现配置}
+\tiny
+\begin{tabularx}{\linewidth}{l>{\raggedright\arraybackslash}p{6cm}l>{\raggedright\arraybackslash}p{6cm}}
+\toprule
+参数 & 值 & 参数 & 值 \\
+\midrule
+seed & 1 & model\_name & EleutherAI/pythia-70m-deduped \\
+dataset\_name & HuggingFaceFW/fineweb & output\_path & /NAS/chennc/NashChennc/results/counting-manifolds \\
+batch\_size & 4 & num\_workers & 14 \\
+line\_length & 150 & num\_samples & 1000 \\
+min\_lines & 10 & n\_components & 6 \\
+max\_seq\_len & 1024 & use\_chat & false \\
+log\_first\_n & 25 & sae\_top\_k\_for\_save & 100 \\
+num\_features\_for\_sae\_span & 20 & pca\_n\_omit & 20 \\
+pca\_n\_components & 6 & run\_best\_layer\_only & false \\
+best\_layer & 0 & dtype & float32 \\
+\bottomrule
+\end{tabularx}
+\end{frame}
+
+\begin{frame}{附录：GPT-2 复现配置}
+\tiny
+\begin{tabularx}{\linewidth}{l>{\raggedright\arraybackslash}p{6cm}l>{\raggedright\arraybackslash}p{6cm}}
+\toprule
+参数 & 值 & 参数 & 值 \\
+\midrule
+seed & 1 & model\_name & openai-community/gpt2 \\
+dataset\_name & HuggingFaceFW/fineweb & output\_path & /NAS/chennc/NashChennc/results/counting-manifolds \\
+batch\_size & 4 & num\_workers & 14 \\
+line\_length & 150 & num\_samples & 1000 \\
+min\_lines & 10 & n\_components & 6 \\
+max\_seq\_len & 1024 & use\_chat & false \\
+log\_first\_n & 25 & sae\_top\_k\_for\_save & 100 \\
+num\_features\_for\_sae\_span & 20 & pca\_n\_omit & 20 \\
+pca\_n\_components & 6 & run\_best\_layer\_only & false \\
+best\_layer & 0 & dtype & float32 \\
+SAE & gpt2-small-resid-post-v5-128k & SAE library & sae\_lens 6.30.0 \\
+\bottomrule
+\end{tabularx}
+\end{frame}
+
+\begin{frame}{附录：实验条件映射}
+\tiny
+\begin{tabularx}{\linewidth}{c>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}X}
+\toprule
+\textbf{ID} & \textbf{模型} & \textbf{配置} & \textbf{关键差异} \\
+\midrule
+pythia-70m & Pythia-70M & repro-pythia-70m-gpu.yml & 6 层, 512-d, 无 SAE, float32, eager attention \\
+gpt2 & GPT-2 & repro-gpt2-gpu.yml & 12 层, 768-d, 有 SAE (128k feat), float32, eager attention \\
+\midrule
+\multicolumn{4}{l}{\textbf{可扩展模型（configs/ 下已就绪）：}} \\
+pythia-14m & Pythia-14M & pythia-14m.yml & 6 层, 128-d（最小验证） \\
+pythia-* & Pythia 160M--2.8B & pythia-*.yml & 跨规模比较 \\
+gpt2-* & GPT-2 Medium--XL & gpt2-*.yml & GPT-2 家族 SAE 全支持 \\
+gemma-2-* & Gemma 2 2B/9B & gemma-2-*.yml & 9B 有 SAE \\
+gemma-3-* & Gemma 3 270M--12B & gemma-3-*.yml & PT + IT 变体 \\
+qwen3-* & Qwen3 0.6B--14B & qwen3-*.yml & max\_seq\_len=4096, 有 chat 变体 \\
+llama3.1-8b & Llama 3.1 8B & llama3.1-8b.yml & 有 SAE, bfloat16, flash\_attn \\
+\bottomrule
+\end{tabularx}
+\end{frame}
+
+\begin{frame}{附录：conda 环境}
+\footnotesize
+\begin{block}{环境路径}
+\code{/NAS/chennc/NashChennc/.tmp/conda-envs/counting-manifolds}
+\end{block}
+
+\begin{tabularx}{\linewidth}{ll}
+\toprule
+依赖 & 版本 \\
+\midrule
+Python & 3.12 \\
+torch & 2.9 \\
+transformers & $<$5.0.0 \\
+accelerate & $\ge$1.12.0 \\
+sae\_lens & 6.30.0 \\
+datasets & $\ge$4.5.0 \\
+scikit-learn & $\ge$1.8.0 \\
+pyrallis & $\ge$0.3.1 \\
+numpy & $<$2 \\
+pandas & $\ge$3.0.0 \\
+loguru & $\ge$0.7.3 \\
+\bottomrule
+\end{tabularx}
+
+\vspace{0.4em}
+HF cache: \code{/NAS/chennc/NashChennc/.tmp/hf-cache}
+\end{frame}
